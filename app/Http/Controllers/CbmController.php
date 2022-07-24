@@ -3,9 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\CbmCsvProcess;
-use App\Models\Cbm;
-use Illuminate\Http\Request;
-use Prophecy\Doubler\Generator\Node\ReturnTypeNode;
+use Illuminate\Support\Facades\Bus;
 
 class CbmController extends Controller
 {
@@ -19,33 +17,30 @@ class CbmController extends Controller
         if (request()->has('mycsv')) {
             $data = file(request()->mycsv);
 
-            $chunks = array_chunk($data, 20);
-
+            $chunks = array_chunk($data, 1000);
 
             $header = [];
+            $batch = Bus::batch([])-> dispatch();
             foreach ($chunks as $key => $chunk) {
-                // $name = "/tmp{$key}.csv";
-                // file_put_contents($path . $name, $chunk);
-                // }
 
-                // $files = glob("$path/*.csv");
-
-
-                // foreach ($files as $key => $file) {
-                $data = array_map('str_getcsv', $chunk); 
+                $data = array_map('str_getcsv', $chunk);
                 if ($key == 0) {
                     $header = $data[0];
                     unset($data[0]);
                 }
-
+                $batch->add(new CbmCsvProcess($data,$header));
                 CbmCsvProcess::dispatch($data, $header);
-
-                // unlink($file);
             }
 
-            return 'stored';
+            return $batch;
         };
 
         return 'upload file';
+    }
+
+    public function batch()
+    {
+        $batchId = request('id');
+        return Bus::findBatch($batchId);
     }
 }

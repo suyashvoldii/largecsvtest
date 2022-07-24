@@ -20,3 +20,4 @@ Route::get('/', function () {
 
 Route::get('upload', [CbmController::class, 'index']);
 Route::post('upload', [CbmController::class, 'upload']);
+Route::get('batch', [CbmController::class, 'batch']);
